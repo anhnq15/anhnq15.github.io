@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản lý khoản vay</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --card2:#273449; --line:#334155;
+    --txt:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --accent2:#22c55e;
+    --danger:#f87171; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--txt);line-height:1.45}
+  header{position:sticky;top:0;z-index:10;background:#0b1220;border-bottom:1px solid var(--line);
+    padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0;flex:1;min-width:180px}
+  .btn{background:var(--card2);color:var(--txt);border:1px solid var(--line);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#04212f;border-color:var(--accent);font-weight:600}
+  .btn.green{background:var(--accent2);color:#04250f;border-color:var(--accent2);font-weight:600}
+  .btn.ghost{background:transparent}
+  .btn.small{padding:5px 10px;font-size:13px}
+  .btn.danger{color:var(--danger);border-color:#5b2626}
+  main{max-width:1080px;margin:0 auto;padding:20px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .card h3{margin:0 0 10px}
+  .muted{color:var(--muted)}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed #2b3a52}
+  .row:last-child{border-bottom:none}
+  .row .k{color:var(--muted)}
+  .row .v{font-weight:600;text-align:right}
+  .big{font-size:22px;font-weight:700}
+  .pos{color:var(--accent2)} .neg{color:var(--danger)} .warnc{color:var(--warn)}
+  .detail-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .actionbar{display:flex;gap:8px;flex-wrap:wrap}
+  .hero-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+  @media(max-width:860px){.hero-grid{grid-template-columns:1fr}}
+  .hero{position:relative;overflow:hidden;background:linear-gradient(155deg,#1f2a3d,#151d2c);
+    border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;min-height:210px}
+  .hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px}
+  .hero.blue::before{background:var(--accent)} .hero.amber::before{background:var(--warn)} .hero.green::before{background:var(--accent2)}
+  .hero .cap{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  .hero .num{font-size:32px;font-weight:800;line-height:1.05;margin:8px 0 2px}
+  .hero .foot{margin-top:auto;padding-top:12px}
+  .hero .foot .row{border-color:#2b3a52;font-size:13px}
+  .mini-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}
+  @media(max-width:860px){.mini-grid{grid-template-columns:repeat(2,1fr)}}
+  .mini{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .mini .cap{font-size:12px;color:var(--muted)}
+  .mini .mv{font-size:18px;font-weight:700;margin-top:4px}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:860px){.two-col{grid-template-columns:1fr}}
+  .two-col .card{display:flex;flex-direction:column}
+  body.locked header,body.locked main{display:none}
+  #authOverlay{position:fixed;inset:0;z-index:100;background:radial-gradient(1200px 600px at 50% -10%,#16233a,var(--bg));
+    display:flex;align-items:center;justify-content:center;padding:20px}
+  #authOverlay.hidden{display:none}
+  .auth-card{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);
+    border-radius:18px;padding:28px}
+  .auth-card h2{margin:0 0 4px} .auth-card p{margin:0 0 18px;color:var(--muted);font-size:13px}
+  .auth-err{color:var(--danger);font-size:13px;margin-top:10px;min-height:16px}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input,select{width:100%;background:#0b1220;border:1px solid var(--line);color:var(--txt);
+    padding:9px 10px;border-radius:8px;font-size:14px}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;
+    justify-content:center;padding:30px 16px;overflow:auto;z-index:50}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;
+    width:100%;max-width:640px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--card)}
+  tr.cur{background:#14324a}
+  .tier-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:var(--card2);border:1px solid var(--line)}
+  .scroll{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .hidden{display:none}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .section-title{margin:22px 0 8px;font-size:15px;color:var(--accent)}
+  .checkline{display:flex;align-items:center;gap:8px;margin-top:12px}
+  .checkline input{width:auto}
+</style>
+</head>
+<body class="locked">
+<div id="authOverlay">
+  <div class="auth-card">
+    <h2>🔒 Đăng nhập</h2>
+    <p>Quản lý khoản vay</p>
+    <label>Tài khoản</label>
+    <input id="authUser" autocomplete="username" placeholder="Tài khoản">
+    <label>Mật khẩu</label>
+    <input id="authPass" type="password" autocomplete="current-password" placeholder="Mật khẩu">
+    <div class="auth-err" id="authErr"></div>
+    <button class="btn primary" id="btnLogin" style="width:100%;margin-top:14px">Đăng nhập</button>
+  </div>
+</div>
+<header>
+  <h1>💰 Quản lý khoản vay & tiền phải trả tháng tới</h1>
+  <button class="btn" id="btnBack" style="display:none">← Danh sách</button>
+  <span class="pill hidden" id="fileLabel" style="cursor:default"></span>
+  <button class="btn small ghost hidden" id="btnUnlink" title="Bỏ liên kết file">✕ file</button>
+  <button class="btn green" id="btnExport">⤓ Lưu JSON</button>
+  <button class="btn" id="btnImportTrigger">⤒ Tải JSON</button>
+  <button class="btn small ghost" id="btnLogout" title="Đăng xuất">⎋ Thoát</button>
+  <input type="file" id="importFile" accept="application/json" style="display:none">
+</header>
+<main>
+  <div id="listView">
+    <div class="flex" style="justify-content:space-between;margin-bottom:14px">
+      <div class="muted" id="listSummary"></div>
+      <button class="btn primary" id="btnNew">+ Khoản vay mới</button>
+    </div>
+    <div class="grid" id="loanGrid"></div>
+  </div>
+  <div id="detailView" style="display:none"></div>
+</main>
+
+<!-- New / Edit loan modal -->
+<div class="modal-bg" id="loanModal">
+  <div class="modal">
+    <h2 id="loanModalTitle">Khoản vay mới</h2>
+    <label>Tên khoản vay</label>
+    <input id="f_name" placeholder="VD: Vay mua nhà">
+    <div class="form-grid">
+      <div>
+        <label>1. Số tiền nợ (gốc ban đầu)</label>
+        <input id="f_principal" inputmode="numeric" placeholder="VD: 1000000000">
+        <div class="hint" id="hint_principal"></div>
+      </div>
+      <div>
+        <label>2. Ngày bắt đầu vay</label>
+        <input id="f_start" type="date">
+      </div>
+      <div>
+        <label>3. Lãi suất ưu đãi (%/năm)</label>
+        <input id="f_promoRate" inputmode="decimal" placeholder="VD: 7.5">
+      </div>
+      <div>
+        <label>4. Số tháng ưu đãi</label>
+        <input id="f_promoMonths" inputmode="numeric" placeholder="VD: 12">
+      </div>
+      <div>
+        <label>5. Tiền gốc trả hằng tháng</label>
+        <input id="f_monthlyPrincipal" inputmode="numeric" placeholder="VD: 5000000">
+        <div class="hint" id="hint_monthly"></div>
+      </div>
+      <div>
+        <label>6. Thời gian vay</label>
+        <div class="flex">
+          <input id="f_termYears" inputmode="numeric" placeholder="Năm" style="flex:1">
+          <input id="f_termMonths" inputmode="numeric" placeholder="Tháng" style="flex:1">
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">7. Phạt trả nợ trước hạn</div>
+    <div class="hint">Tính theo % số tiền trả trước. VD: trước năm 2 → 1.5%, trước năm 3 → 1%, sau đó → 0%.</div>
+    <div id="tierList"></div>
+    <button class="btn small" id="btnAddTier" type="button">+ Thêm mốc phạt</button>
+    <div class="hint">Sau mốc cuối cùng: không phạt (0%).</div>
+
+    <div class="flex" style="justify-content:flex-end;margin-top:20px">
+      <button class="btn ghost" id="btnCancelLoan">Hủy</button>
+      <button class="btn primary" id="btnSaveLoan">Lưu khoản vay</button>
+    </div>
+  </div>
+</div>
+
+<!-- Prepayment modal -->
+<div class="modal-bg" id="prepayModal">
+  <div class="modal" style="max-width:460px">
+    <h2>Trả nợ trước hạn</h2>
+    <label>Ngày trả</label>
+    <input id="p_date" type="date">
+    <label>Số tiền gốc trả trước</label>
+    <input id="p_amount" inputmode="numeric" placeholder="VD: 100000000">
+    <div class="hint" id="p_hint"></div>
+    <div class="flex" style="justify-content:flex-end;margin-top:20px">
+      <button class="btn ghost" id="btnCancelPrepay">Hủy</button>
+      <button class="btn primary" id="btnSavePrepay">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generic info modal (float / history / schedule) -->
+<div class="modal-bg" id="infoModal">
+  <div class="modal" id="infoModalInner"></div>
+</div>
+
+<script>
+/* ================= State & storage ================= */
+const LS_KEY = 'debtManagerData_v1';
+let data = { loans: [] };
+let currentLoanId = null;
+let tierCount = 0;
+
+function uid(){ return 'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(data)); }
+function load(){
+  try{ const s = localStorage.getItem(LS_KEY); if(s) data = JSON.parse(s); }catch(e){ data={loans:[]}; }
+  if(!data.loans) data.loans=[];
+}
+
+/* ================= Helpers ================= */
+function parseDate(s){ if(!s) return null; const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function ymd(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+function fmtDate(dt){ return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear(); }
+function monthKey(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'); }
+function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
+function addMonths(dt,n){
+  const day=dt.getDate(); const d=new Date(dt.getFullYear(),dt.getMonth(),1);
+  d.setMonth(d.getMonth()+n);
+  d.setDate(Math.min(day, daysInMonth(d.getFullYear(),d.getMonth())));
+  return d;
+}
+function adjustWorkday(dt){
+  const d=new Date(dt); const dow=d.getDay();
+  if(dow===6) d.setDate(d.getDate()+2);      // Sat -> Mon
+  else if(dow===0) d.setDate(d.getDate()+1); // Sun -> Mon
+  return d;
+}
+function daysBetween(a,b){ return Math.round((b-a)/86400000); }
+function money(n){ return Math.round(n).toLocaleString('vi-VN')+' đ'; }
+function num(v){ const n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; }
+function todayMidnight(){ const d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+
+/* ================= Core computation ================= */
+// Returns amortization schedule month by month.
+function computeSchedule(loan){
+  const start = parseDate(loan.startDate);
+  if(!start) return [];
+  const totalMonths = (parseInt(loan.termYears)||0)*12 + (parseInt(loan.termMonths)||0);
+  const monthlyP = num(loan.monthlyPrincipal)||0;
+  let remaining = num(loan.principal);
+  let skipCredit = 0;      // months of principal covered by prepayment
+  let lastFloat = null;
+  const rows=[];
+  let prevDate = start;
+
+  const preps = (loan.prepayments||[]).map(p=>({date:parseDate(p.date), amount:num(p.amount), raw:p}))
+                  .sort((a,b)=>a.date-b.date);
+  let pi=0;
+
+  for(let i=1; i<=totalMonths && remaining>0.5; i++){
+    const raw = addMonths(start, i);
+    const adj = adjustWorkday(raw);
+
+    // Apply prepayments happening in (prevDate, adj]
+    const prepThisMonth=[];
+    while(pi<preps.length && preps[pi].date && preps[pi].date<=adj){
+      const p=preps[pi];
+      remaining -= p.amount;
+      if(monthlyP>0) skipCredit += Math.floor(p.amount/monthlyP);
+      prepThisMonth.push(p);
+      pi++;
+    }
+    if(remaining<0) remaining=0;
+
+    const days = daysBetween(prevDate, adj);
+
+    // Rate for this month
+    let rate, rateType;
+    if(i<=(parseInt(loan.promoMonths)||0)){ rate=num(loan.promoRate); rateType='Ưu đãi'; }
+    else{
+      const key=monthKey(adj);
+      if(loan.floatingRates && loan.floatingRates[key]!=null){ lastFloat=num(loan.floatingRates[key]); }
+      if(lastFloat!=null){ rate=lastFloat; rateType='Thả nổi'; }
+      else{ rate=num(loan.promoRate); rateType='(chưa đặt thả nổi)'; }
+    }
+
+    const interest = remaining * (rate/100) * (days/365);
+
+    let principalDue;
+    if(skipCredit>0){ principalDue=0; skipCredit--; }
+    else { principalDue=Math.min(monthlyP, remaining); }
+
+    const remainingBefore = remaining;
+    remaining -= principalDue;
+
+    rows.push({ index:i, rawDate:raw, date:adj, days, rate, rateType, interest,
+      principalDue, remainingBefore, remainingAfter:remaining, prepayments:prepThisMonth });
+    prevDate = adj;
+  }
+  return rows;
+}
+
+function penaltyRateFor(loan, prepayDate){
+  const start=parseDate(loan.startDate);
+  const years=daysBetween(start, prepayDate)/365;
+  const tiers=(loan.penaltyTiers||[]).slice().sort((a,b)=>a.untilYear-b.untilYear);
+  for(const t of tiers){ if(years < t.untilYear) return num(t.ratePct); }
+  return 0;
+}
+
+function currentRow(rows){
+  const t=todayMidnight();
+  for(const r of rows){ if(r.date>=t) return r; }
+  return rows[rows.length-1] || null;
+}
+function remainingToday(loan, rows){
+  const t=todayMidnight();
+  let last=null;
+  for(const r of rows){ if(r.date<t) last=r; else break; }
+  return last ? last.remainingAfter : num(loan.principal);
+}
+
+/* ================= List view ================= */
+function renderList(){
+  document.getElementById('listView').style.display='';
+  document.getElementById('detailView').style.display='none';
+  document.getElementById('btnBack').style.display='none';
+  const grid=document.getElementById('loanGrid');
+  grid.innerHTML='';
+  document.getElementById('listSummary').textContent =
+    data.loans.length ? `Tổng số khoản vay: ${data.loans.length}` : 'Chưa có khoản vay nào.';
+
+  data.loans.forEach(loan=>{
+    const rows=computeSchedule(loan);
+    const cur=currentRow(rows);
+    const remain=remainingToday(loan, rows);
+    const card=document.createElement('div');
+    card.className='card';
+    card.innerHTML=`
+      <h3>${escapeHtml(loan.name||'Khoản vay')}</h3>
+      <div class="row"><span class="k">Gốc ban đầu</span><span class="v">${money(num(loan.principal))}</span></div>
+      <div class="row"><span class="k">Gốc còn lại</span><span class="v pos">${money(remain)}</span></div>
+      <div class="row"><span class="k">Kỳ tới</span><span class="v">${cur?fmtDate(cur.date):'-'}</span></div>
+      <div class="row"><span class="k">Lãi kỳ tới</span><span class="v warnc">${cur?money(cur.interest):'-'}</span></div>
+      <div class="row"><span class="k">Gốc kỳ tới</span><span class="v">${cur?money(cur.principalDue):'-'}</span></div>
+      <div class="flex" style="justify-content:space-between;margin-top:14px">
+        <button class="btn small" data-open="${loan.id}">Quản lý →</button>
+        <button class="btn small danger" data-del="${loan.id}">Xóa</button>
+      </div>`;
+    grid.appendChild(card);
+  });
+  grid.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openDetail(b.dataset.open));
+  grid.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    if(confirm('Xóa khoản vay này?')){ data.loans=data.loans.filter(l=>l.id!==b.dataset.del); save(); renderList(); }
+  });
+}
+
+/* ================= Detail view ================= */
+function openDetail(id){
+  currentLoanId=id;
+  const loan=data.loans.find(l=>l.id===id);
+  if(!loan) return;
+  document.getElementById('listView').style.display='none';
+  document.getElementById('detailView').style.display='';
+  document.getElementById('btnBack').style.display='';
+  renderDetail();
+}
+
+function renderDetail(){
+  const loan=data.loans.find(l=>l.id===currentLoanId);
+  if(!loan){ renderList(); return; }
+  const rows=computeSchedule(loan);
+  const cur=currentRow(rows);
+  const remain=remainingToday(loan, rows);
+  const dv=document.getElementById('detailView');
+
+  const curKey = cur ? monthKey(cur.date) : monthKey(new Date());
+  const paid = num(loan.principal)-remain;
+  const paidPct = num(loan.principal)>0 ? Math.min(100,Math.max(0,paid/num(loan.principal)*100)) : 0;
+  const prepCount = (loan.prepayments||[]).length;
+  const totalDue = cur ? cur.interest+cur.principalDue : 0;
+
+  const t=todayMidnight();
+  const totalInterestAll = rows.reduce((s,r)=>s+r.interest,0);
+  const interestToDate = rows.filter(r=>r.date<t).reduce((s,r)=>s+r.interest,0);
+  const totalPenalty = (loan.prepayments||[]).reduce((s,p)=>s+num(p.amount)*penaltyRateFor(loan,parseDate(p.date))/100,0);
+  const payoff = rows.length?rows[rows.length-1].date:null;
+  const upcoming = rows.filter(r=>r.date>=t).slice(0,6);
+
+  const tiers=(loan.penaltyTiers||[]).slice().sort((a,b)=>a.untilYear-b.untilYear);
+  const tierPills = (tiers.length
+    ? tiers.map(t=>`<span class="pill">Trước năm ${t.untilYear}: ${t.ratePct}%</span>`).join(' ')+' <span class="pill">Sau đó: 0%</span>'
+    : '<span class="muted">Không có</span>');
+
+  const upRows = upcoming.map(r=>`
+    <tr class="${cur&&r.index===cur.index?'cur':''}">
+      <td>${r.index}</td><td>${fmtDate(r.date)}</td>
+      <td class="warnc">${money(r.interest)}</td><td>${money(r.principalDue)}</td>
+      <td class="v">${money(r.interest+r.principalDue)}</td>
+    </tr>`).join('');
+
+  dv.innerHTML=`
+    <div class="detail-head">
+      <div>
+        <h2 style="margin:0">${escapeHtml(loan.name||'Khoản vay')}</h2>
+        <div class="muted" style="font-size:13px">Vay ${loan.termYears||0} năm ${loan.termMonths||0} tháng · ưu đãi ${num(loan.promoRate)}%/năm trong ${loan.promoMonths||0} tháng</div>
+      </div>
+      <div class="actionbar">
+        <button class="btn small" id="btnFloat">📈 Lãi suất thả nổi</button>
+        <button class="btn small" id="btnHistory">🧾 Lịch sử đã trả${prepCount?` (${prepCount})`:''}</button>
+        <button class="btn small" id="btnSchedule">📅 Lịch trả nợ dự kiến</button>
+        <button class="btn small green" id="btnAddPrepay">+ Trả trước hạn</button>
+        <button class="btn small" id="btnEditLoan">✎ Sửa</button>
+      </div>
+    </div>
+
+    <div class="hero-grid">
+      <div class="hero blue">
+        <div class="cap">1 · Số tiền gốc</div>
+        <div class="num pos">${money(remain)}</div>
+        <div class="muted" style="font-size:13px">còn lại trên tổng ${money(num(loan.principal))}</div>
+        <div class="foot">
+          <div style="margin-bottom:8px"><div class="muted" style="font-size:12px;margin-bottom:4px">Đã trả ${paidPct.toFixed(1)}% gốc</div>
+            <div style="height:8px;background:#0b1220;border-radius:99px;overflow:hidden"><div style="height:100%;width:${paidPct}%;background:var(--accent)"></div></div>
+          </div>
+          <div class="row"><span class="k">Đã trả gốc</span><span class="v">${money(paid)}</span></div>
+        </div>
+      </div>
+
+      <div class="hero amber">
+        <div class="cap">2 · Lãi phải trả kỳ này</div>
+        <div class="num warnc">${cur?money(cur.interest):'-'}</div>
+        <div class="muted" style="font-size:13px">${cur?`đến ngày ${fmtDate(cur.date)}`:'chưa có kỳ'}</div>
+        <div class="foot">
+          <div class="row"><span class="k">Số ngày tính lãi</span><span class="v">${cur?cur.days+' ngày':'-'}</span></div>
+          <div class="row"><span class="k">Lãi suất</span><span class="v">${cur?cur.rate+'% · '+cur.rateType:'-'}</span></div>
+          ${cur && ymd(cur.rawDate)!==ymd(cur.date)?`<div class="hint">↳ Kỳ gốc ${fmtDate(cur.rawDate)} rơi cuối tuần → dời sang ${fmtDate(cur.date)}.</div>`:''}
+        </div>
+      </div>
+
+      <div class="hero green">
+        <div class="cap">5 · Gốc phải trả kỳ này</div>
+        <div class="num">${cur?money(cur.principalDue):'-'}</div>
+        <div class="muted" style="font-size:13px">${cur&&cur.principalDue===0?'được bù bằng khoản trả trước hạn':'theo mức gốc hằng tháng đã đăng ký'}</div>
+        <div class="foot">
+          <div class="row"><span class="k">Gốc/tháng đăng ký</span><span class="v">${money(num(loan.monthlyPrincipal))}</span></div>
+          <div class="row"><span class="k">Tổng phải trả kỳ này</span><span class="v pos" style="font-size:15px">${cur?money(totalDue):'-'}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mini-grid">
+      <div class="mini"><div class="cap">Ngày tất toán dự kiến</div><div class="mv">${payoff?fmtDate(payoff):'-'}</div></div>
+      <div class="mini"><div class="cap">Tổng lãi toàn kỳ</div><div class="mv warnc">${money(totalInterestAll)}</div></div>
+      <div class="mini"><div class="cap">Lãi đã trả tới nay</div><div class="mv">${money(interestToDate)}</div></div>
+      <div class="mini"><div class="cap">Tổng phí phạt trả trước</div><div class="mv neg">${money(totalPenalty)}</div></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h3 style="margin:0 0 10px">Thông tin khoản vay</h3>
+        <div class="row"><span class="k">Ngày bắt đầu vay</span><span class="v">${fmtDate(parseDate(loan.startDate))}</span></div>
+        <div class="row"><span class="k">Thời hạn vay</span><span class="v">${loan.termYears||0} năm ${loan.termMonths||0} tháng</span></div>
+        <div class="row"><span class="k">Lãi suất ưu đãi</span><span class="v">${num(loan.promoRate)}%/năm · ${loan.promoMonths||0} tháng</span></div>
+        <div class="row"><span class="k">Gốc trả hằng tháng</span><span class="v">${money(num(loan.monthlyPrincipal))}</span></div>
+        <div class="row"><span class="k">Số lần trả trước hạn</span><span class="v">${prepCount}</span></div>
+        <div style="margin-top:12px"><div class="muted" style="font-size:12px;margin-bottom:6px">Mốc phạt trả nợ trước hạn</div>${tierPills}</div>
+      </div>
+
+      <div class="card" style="padding:0">
+        <div class="flex" style="justify-content:space-between;padding:16px 18px 8px">
+          <h3 style="margin:0">Các kỳ sắp tới</h3>
+          <button class="btn small ghost" id="btnSchedule2">Xem toàn bộ →</button>
+        </div>
+        <div style="padding:0 6px 6px">
+          <table>
+            <thead><tr><th>Kỳ</th><th>Ngày trả</th><th>Lãi</th><th>Gốc</th><th>Tổng</th></tr></thead>
+            <tbody>${upRows||'<tr><td colspan="5" class="muted" style="text-align:center;padding:16px">Không còn kỳ nào</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btnEditLoan').onclick=()=>openLoanModal(loan);
+  document.getElementById('btnAddPrepay').onclick=()=>openPrepayModal();
+  document.getElementById('btnFloat').onclick=openFloatModal;
+  document.getElementById('btnHistory').onclick=openHistoryModal;
+  document.getElementById('btnSchedule').onclick=openScheduleModal;
+  document.getElementById('btnSchedule2').onclick=openScheduleModal;
+}
+
+/* ================= Info modals (float / history / schedule) ================= */
+function openModalHTML(html, wide){
+  const inner=document.getElementById('infoModalInner');
+  inner.style.maxWidth = wide?'860px':'560px';
+  inner.innerHTML=html;
+  document.getElementById('infoModal').classList.add('show');
+  return inner;
+}
+function closeInfoModal(){ document.getElementById('infoModal').classList.remove('show'); }
+
+function openFloatModal(){
+  const loan=data.loans.find(l=>l.id===currentLoanId);
+  const rows=computeSchedule(loan);
+  const cur=currentRow(rows);
+  const curKey = cur ? monthKey(cur.date) : monthKey(new Date());
+  const isFloatingPeriod = cur && cur.index>(parseInt(loan.promoMonths)||0);
+  const floatSet = loan.floatingRates && loan.floatingRates[curKey]!=null;
+
+  const entries=Object.entries(loan.floatingRates||{}).sort((a,b)=>a[0]<b[0]?-1:1);
+  const list = entries.length ? entries.map(([k,v])=>`
+    <div class="row"><span class="k">Tháng ${k}</span>
+      <span class="v">${v}%/năm <button class="btn small danger" data-delfloat="${k}" style="margin-left:8px">×</button></span></div>`).join('')
+    : '<div class="muted" style="padding:8px 0">Chưa đặt lãi suất thả nổi nào.</div>';
+
+  const inner=openModalHTML(`
+    <div class="flex" style="justify-content:space-between"><h2 style="margin:0">📈 Lãi suất thả nổi</h2>
+      <button class="btn small ghost" id="btnCloseInfo">✕</button></div>
+    <div class="checkline">
+      <input type="checkbox" id="chkFloat" ${floatSet?'checked':''} ${isFloatingPeriod?'':'disabled'}>
+      <label style="margin:0" for="chkFloat">Đặt lãi suất thả nổi cho tháng hiện tại (${curKey})</label>
+    </div>
+    <div id="floatBox" class="${floatSet?'':'hidden'}">
+      <label>Lãi suất thả nổi (%/năm)</label>
+      <div class="flex">
+        <input id="floatRate" inputmode="decimal" style="flex:1" value="${floatSet?loan.floatingRates[curKey]:''}" placeholder="VD: 9.5">
+        <button class="btn small primary" id="btnSaveFloat">Lưu</button>
+      </div>
+      <div class="hint">Áp dụng từ tháng ${curKey} và giữ nguyên cho các tháng sau tới khi đặt giá trị mới. Lưu theo từng tháng trong JSON.</div>
+    </div>
+    ${isFloatingPeriod?'':'<div class="hint">Vẫn trong thời gian ưu đãi nên chưa dùng lãi suất thả nổi.</div>'}
+    <div class="section-title">Các mức đã đặt theo tháng</div>
+    ${list}
+  `);
+
+  inner.querySelector('#btnCloseInfo').onclick=closeInfoModal;
+  const chk=inner.querySelector('#chkFloat'), box=inner.querySelector('#floatBox');
+  chk.onchange=()=>box.classList.toggle('hidden', !chk.checked);
+  inner.querySelector('#btnSaveFloat').onclick=()=>{
+    loan.floatingRates=loan.floatingRates||{};
+    loan.floatingRates[curKey]=num(inner.querySelector('#floatRate').value);
+    save(); openFloatModal(); renderDetail();
+  };
+  inner.querySelectorAll('[data-delfloat]').forEach(b=>b.onclick=()=>{
+    delete loan.floatingRates[b.dataset.delfloat]; save(); openFloatModal(); renderDetail();
+  });
+}
+
+function openHistoryModal(){
+  const loan=data.loans.find(l=>l.id===currentLoanId);
+  const preps=(loan.prepayments||[]).map((p,i)=>({p,i})).sort((a,b)=>parseDate(a.p.date)-parseDate(b.p.date));
+  let totalAmt=0, totalPen=0;
+  const body=preps.map(({p,i})=>{
+    const pr=penaltyRateFor(loan, parseDate(p.date));
+    const pen=num(p.amount)*pr/100; totalAmt+=num(p.amount); totalPen+=pen;
+    return `<tr><td>${fmtDate(parseDate(p.date))}</td><td>${money(num(p.amount))}</td><td>${pr}%</td>
+      <td class="neg">${money(pen)}</td><td><button class="btn small danger" data-delprep="${i}">×</button></td></tr>`;
+  }).join('');
+  const inner=openModalHTML(`
+    <div class="flex" style="justify-content:space-between"><h2 style="margin:0">🧾 Lịch sử trả nợ trước hạn</h2>
+      <button class="btn small ghost" id="btnCloseInfo">✕</button></div>
+    <div class="scroll" style="margin-top:12px">
+      <table><thead><tr><th>Ngày</th><th>Số tiền trả</th><th>% phạt</th><th>Tiền phạt</th><th></th></tr></thead>
+      <tbody>${body||'<tr><td colspan="5" class="muted" style="text-align:center;padding:16px">Chưa có</td></tr>'}</tbody>
+      ${preps.length?`<tfoot><tr><th>Tổng</th><th>${money(totalAmt)}</th><th></th><th class="neg">${money(totalPen)}</th><th></th></tr></tfoot>`:''}
+      </table>
+    </div>
+    <div class="flex" style="justify-content:flex-end;margin-top:16px">
+      <button class="btn green" id="btnAddPrepay2">+ Thêm khoản trả trước hạn</button>
+    </div>
+  `, true);
+  inner.querySelector('#btnCloseInfo').onclick=closeInfoModal;
+  inner.querySelector('#btnAddPrepay2').onclick=()=>{ closeInfoModal(); openPrepayModal(); };
+  inner.querySelectorAll('[data-delprep]').forEach(b=>b.onclick=()=>{
+    loan.prepayments.splice(parseInt(b.dataset.delprep),1); save(); openHistoryModal(); renderDetail();
+  });
+}
+
+function openScheduleModal(){
+  const loan=data.loans.find(l=>l.id===currentLoanId);
+  const rows=computeSchedule(loan);
+  const cur=currentRow(rows);
+  const body=rows.map(r=>`
+    <tr class="${cur&&r.index===cur.index?'cur':''}">
+      <td>${r.index}</td><td>${fmtDate(r.date)}</td><td>${r.days}</td>
+      <td>${r.rate}% <span class="muted" style="font-size:11px">${r.rateType}</span></td>
+      <td class="warnc">${money(r.interest)}</td><td>${money(r.principalDue)}</td><td>${money(r.remainingAfter)}</td>
+    </tr>`).join('');
+  const inner=openModalHTML(`
+    <div class="flex" style="justify-content:space-between"><h2 style="margin:0">📅 Lịch trả nợ dự kiến</h2>
+      <button class="btn small ghost" id="btnCloseInfo">✕</button></div>
+    <div class="hint">Dòng sáng là kỳ sắp tới. Lãi tính theo số ngày thực tế tới ngày trả (dời qua cuối tuần).</div>
+    <div class="scroll" style="margin-top:10px;max-height:60vh">
+      <table><thead><tr><th>Kỳ</th><th>Ngày trả</th><th>Ngày lãi</th><th>LS</th><th>Tiền lãi</th><th>Gốc</th><th>Còn lại</th></tr></thead>
+      <tbody>${body||'<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">Thiếu thông tin để tính</td></tr>'}</tbody></table>
+    </div>
+  `, true);
+  inner.querySelector('#btnCloseInfo').onclick=closeInfoModal;
+}
+
+/* ================= Loan modal ================= */
+function addTierRow(untilYear='', ratePct=''){
+  tierCount++;
+  const div=document.createElement('div');
+  div.className='tier-row';
+  div.innerHTML=`
+    <div><label>Trước năm thứ</label><input class="t_year" inputmode="numeric" value="${untilYear}" placeholder="VD: 2"></div>
+    <div><label>% phạt</label><input class="t_rate" inputmode="decimal" value="${ratePct}" placeholder="VD: 1.5"></div>
+    <button class="btn small danger" type="button">×</button>`;
+  div.querySelector('button').onclick=()=>div.remove();
+  document.getElementById('tierList').appendChild(div);
+}
+
+function openLoanModal(loan){
+  const editing=!!loan;
+  document.getElementById('loanModalTitle').textContent = editing?'Sửa khoản vay':'Khoản vay mới';
+  document.getElementById('f_name').value = loan?.name||'';
+  document.getElementById('f_principal').value = loan?.principal||'';
+  document.getElementById('f_start').value = loan?.startDate||'';
+  document.getElementById('f_promoRate').value = loan?.promoRate??'';
+  document.getElementById('f_promoMonths').value = loan?.promoMonths??'';
+  document.getElementById('f_monthlyPrincipal').value = loan?.monthlyPrincipal||'';
+  document.getElementById('f_termYears').value = loan?.termYears??'';
+  document.getElementById('f_termMonths').value = loan?.termMonths??'';
+  document.getElementById('tierList').innerHTML='';
+  const tiers = loan?.penaltyTiers?.length ? loan.penaltyTiers : [{untilYear:2,ratePct:1.5},{untilYear:3,ratePct:1}];
+  tiers.forEach(t=>addTierRow(t.untilYear,t.ratePct));
+  document.getElementById('loanModal').dataset.editing = editing?loan.id:'';
+  updateHints();
+  document.getElementById('loanModal').classList.add('show');
+}
+function closeLoanModal(){ document.getElementById('loanModal').classList.remove('show'); }
+
+function saveLoanFromModal(){
+  const editId=document.getElementById('loanModal').dataset.editing;
+  const tiers=[...document.querySelectorAll('#tierList .tier-row')].map(r=>({
+    untilYear:num(r.querySelector('.t_year').value),
+    ratePct:num(r.querySelector('.t_rate').value)
+  })).filter(t=>t.untilYear>0).sort((a,b)=>a.untilYear-b.untilYear);
+
+  const base={
+    name: document.getElementById('f_name').value.trim()||'Khoản vay',
+    principal: num(document.getElementById('f_principal').value),
+    startDate: document.getElementById('f_start').value,
+    promoRate: num(document.getElementById('f_promoRate').value),
+    promoMonths: parseInt(document.getElementById('f_promoMonths').value)||0,
+    monthlyPrincipal: num(document.getElementById('f_monthlyPrincipal').value),
+    termYears: parseInt(document.getElementById('f_termYears').value)||0,
+    termMonths: parseInt(document.getElementById('f_termMonths').value)||0,
+    penaltyTiers: tiers
+  };
+  if(!base.startDate || base.principal<=0){ alert('Vui lòng nhập số tiền nợ và ngày bắt đầu vay.'); return; }
+
+  if(editId){
+    const loan=data.loans.find(l=>l.id===editId);
+    Object.assign(loan, base);
+  }else{
+    data.loans.push(Object.assign({id:uid(), prepayments:[], floatingRates:{}}, base));
+  }
+  save();
+  closeLoanModal();
+  if(editId && currentLoanId===editId) renderDetail(); else renderList();
+}
+
+function updateHints(){
+  const p=num(document.getElementById('f_principal').value);
+  document.getElementById('hint_principal').textContent = p?money(p):'';
+  const m=num(document.getElementById('f_monthlyPrincipal').value);
+  document.getElementById('hint_monthly').textContent = m?money(m):'';
+}
+
+/* ================= Prepay modal ================= */
+function openPrepayModal(){
+  document.getElementById('p_date').value = ymd(todayMidnight());
+  document.getElementById('p_amount').value='';
+  document.getElementById('p_hint').textContent='';
+  document.getElementById('prepayModal').classList.add('show');
+}
+function closePrepayModal(){ document.getElementById('prepayModal').classList.remove('show'); }
+function savePrepay(){
+  const loan=data.loans.find(l=>l.id===currentLoanId);
+  const date=document.getElementById('p_date').value;
+  const amount=num(document.getElementById('p_amount').value);
+  if(!date||amount<=0){ alert('Nhập ngày và số tiền.'); return; }
+  loan.prepayments=loan.prepayments||[];
+  loan.prepayments.push({date, amount});
+  save(); closePrepayModal(); renderDetail();
+}
+
+/* ================= Import / Export =================
+   Ưu tiên File System Access API: liên kết 1 file JSON (đặt cạnh index.html)
+   rồi mọi lần Lưu/Tải dùng đúng file đó. Fallback: tải/upload thường. */
+let fileHandle=null;
+const supportsFS = 'showSaveFilePicker' in window && 'showOpenFilePicker' in window;
+
+/* --- IndexedDB để nhớ file đã liên kết qua các lần F5 --- */
+function idb(mode,fn){
+  return new Promise(res=>{
+    const r=indexedDB.open('dbm_fs',1);
+    r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains('kv')) r.result.createObjectStore('kv'); };
+    r.onsuccess=()=>{ const tx=r.result.transaction('kv',mode); const st=tx.objectStore('kv'); fn(st,res); };
+    r.onerror=()=>res(null);
+  });
+}
+const idbGet=k=>idb('readonly',(st,res)=>{const g=st.get(k);g.onsuccess=()=>res(g.result);g.onerror=()=>res(null);});
+const idbSet=(k,v)=>idb('readwrite',(st,res)=>{st.put(v,k);res(true);});
+const idbDel=k=>idb('readwrite',(st,res)=>{st.delete(k);res(true);});
+
+async function ensurePerm(handle,mode){
+  const opts={mode};
+  if((await handle.queryPermission(opts))==='granted') return true;
+  if((await handle.requestPermission(opts))==='granted') return true;
+  return false;
+}
+function updateFileLabel(){
+  const el=document.getElementById('fileLabel');
+  const un=document.getElementById('btnUnlink');
+  if(fileHandle){ el.textContent='📄 '+fileHandle.name; el.title='Đang liên kết với file này'; el.classList.remove('hidden'); un.classList.remove('hidden'); }
+  else { el.classList.add('hidden'); un.classList.add('hidden'); }
+}
+function applyImported(text){
+  const obj=JSON.parse(text);
+  if(!obj.loans) throw new Error('Sai định dạng (thiếu "loans")');
+  data=obj; save(); currentLoanId=null; renderList();
+}
+
+async function exportJSON(){
+  const json=JSON.stringify(data,null,2);
+  if(supportsFS){
+    try{
+      if(!fileHandle){
+        fileHandle=await window.showSaveFilePicker({
+          suggestedName:'khoan-vay.json',
+          types:[{description:'JSON',accept:{'application/json':['.json']}}]
+        });
+        await idbSet('fileHandle',fileHandle);
+      }
+      if(await ensurePerm(fileHandle,'readwrite')){
+        const w=await fileHandle.createWritable();
+        await w.write(json); await w.close();
+        updateFileLabel();
+        return;
+      }
+    }catch(e){ if(e.name==='AbortError') return; }
+  }
+  // Fallback: tải về Downloads
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='khoan-vay-'+ymd(new Date())+'.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+async function importJSON(){
+  if(supportsFS){
+    try{
+      const [h]=await window.showOpenFilePicker({
+        types:[{description:'JSON',accept:{'application/json':['.json']}}]
+      });
+      fileHandle=h; await idbSet('fileHandle',h);
+      const f=await h.getFile();
+      applyImported(await f.text());
+      updateFileLabel();
+      return;
+    }catch(e){ if(e.name==='AbortError') return; alert('Không đọc được file: '+e.message); return; }
+  }
+  document.getElementById('importFile').click();
+}
+function importFallback(file){
+  const r=new FileReader();
+  r.onload=()=>{ try{ applyImported(r.result); }catch(e){ alert('File JSON không hợp lệ: '+e.message); } };
+  r.readAsText(file);
+}
+async function unlinkFile(){ fileHandle=null; await idbDel('fileHandle'); updateFileLabel(); }
+async function initFileHandle(){
+  try{ const h=await idbGet('fileHandle'); if(h){ fileHandle=h; updateFileLabel(); } }catch(e){}
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ================= Wire up ================= */
+document.getElementById('btnNew').onclick=()=>openLoanModal(null);
+document.getElementById('btnBack').onclick=()=>renderList();
+document.getElementById('btnCancelLoan').onclick=closeLoanModal;
+document.getElementById('btnSaveLoan').onclick=saveLoanFromModal;
+document.getElementById('btnAddTier').onclick=()=>addTierRow();
+document.getElementById('btnCancelPrepay').onclick=closePrepayModal;
+document.getElementById('btnSavePrepay').onclick=savePrepay;
+document.getElementById('btnExport').onclick=exportJSON;
+document.getElementById('btnImportTrigger').onclick=importJSON;
+document.getElementById('btnUnlink').onclick=unlinkFile;
+document.getElementById('importFile').onchange=e=>{ if(e.target.files[0]) importFallback(e.target.files[0]); e.target.value=''; };
+document.getElementById('f_principal').addEventListener('input',updateHints);
+document.getElementById('f_monthlyPrincipal').addEventListener('input',updateHints);
+[...document.querySelectorAll('.modal-bg')].forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('show'); }));
+
+/* ================= Auth gate (client-side only) ================= */
+const AUTH_USER='anhnq', AUTH_PASS='anhnq', AUTH_KEY='dm_auth';
+let appStarted=false;
+function startApp(){
+  if(appStarted) return; appStarted=true;
+  load(); renderList(); initFileHandle();
+}
+function unlock(){
+  document.getElementById('authOverlay').classList.add('hidden');
+  document.body.classList.remove('locked');
+  startApp();
+}
+function tryLogin(){
+  const u=document.getElementById('authUser').value.trim();
+  const p=document.getElementById('authPass').value;
+  if(u===AUTH_USER && p===AUTH_PASS){
+    sessionStorage.setItem(AUTH_KEY,'1');
+    document.getElementById('authErr').textContent='';
+    unlock();
+  }else{
+    document.getElementById('authErr').textContent='Sai tài khoản hoặc mật khẩu.';
+  }
+}
+function logout(){ sessionStorage.removeItem(AUTH_KEY); location.reload(); }
+
+document.getElementById('btnLogin').onclick=tryLogin;
+document.getElementById('btnLogout').onclick=logout;
+document.getElementById('authPass').addEventListener('keydown',e=>{ if(e.key==='Enter') tryLogin(); });
+document.getElementById('authUser').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('authPass').focus(); });
+
+if(sessionStorage.getItem(AUTH_KEY)==='1'){ unlock(); }
+else { document.getElementById('authUser').focus(); }
+</script>
+</body>
+</html>
