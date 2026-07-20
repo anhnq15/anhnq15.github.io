@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản lý đầu tư chứng khoán</title>
+<style>
+  :root{
+    --bg:#0f172a;--card:#1e293b;--card2:#273449;--line:#334155;
+    --txt:#e2e8f0;--muted:#94a3b8;--accent:#38bdf8;--accent2:#22c55e;
+    --danger:#f87171;--warn:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--txt);line-height:1.45}
+  header{position:sticky;top:0;z-index:10;background:#0b1220;border-bottom:1px solid var(--line);
+    padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0;flex:1;min-width:180px}
+  .btn{background:var(--card2);color:var(--txt);border:1px solid var(--line);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#04212f;border-color:var(--accent);font-weight:600}
+  .btn.green{background:var(--accent2);color:#04250f;border-color:var(--accent2);font-weight:600}
+  .btn.ghost{background:transparent}
+  .btn.small{padding:5px 10px;font-size:13px}
+  .btn.danger{color:var(--danger);border-color:#5b2626}
+  main{max-width:1100px;margin:0 auto;padding:20px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .card h3{margin:0 0 10px}
+  .muted{color:var(--muted)}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed #2b3a52}
+  .row:last-child{border-bottom:none}
+  .row .k{color:var(--muted)}
+  .row .v{font-weight:600;text-align:right}
+  .pos{color:var(--accent2)} .neg{color:var(--danger)} .warnc{color:var(--warn)}
+  .detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  .actionbar{display:flex;gap:8px;flex-wrap:wrap}
+  .hero-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  @media(max-width:900px){.hero-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:480px){.hero-grid{grid-template-columns:1fr}}
+  .hero{position:relative;overflow:hidden;background:linear-gradient(155deg,#1f2a3d,#151d2c);
+    border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;min-height:110px}
+  .hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px}
+  .hero.blue::before{background:var(--accent)}
+  .hero.amber::before{background:var(--warn)}
+  .hero.green::before{background:var(--accent2)}
+  .hero.red::before{background:var(--danger)}
+  .hero .cap{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  .hero .num{font-size:24px;font-weight:800;line-height:1.15;margin:8px 0 2px}
+  .hero .sub{font-size:12px;color:var(--muted);margin-top:3px}
+  .mini-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}
+  @media(max-width:860px){.mini-grid{grid-template-columns:repeat(2,1fr)}}
+  .mini{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .mini .cap{font-size:12px;color:var(--muted)}
+  .mini .mv{font-size:17px;font-weight:700;margin-top:4px}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:860px){.two-col{grid-template-columns:1fr}}
+  body.locked header,body.locked main{display:none}
+  #authOverlay{position:fixed;inset:0;z-index:100;background:radial-gradient(1200px 600px at 50% -10%,#16233a,var(--bg));
+    display:flex;align-items:center;justify-content:center;padding:20px}
+  #authOverlay.hidden{display:none}
+  .auth-card{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);
+    border-radius:18px;padding:28px}
+  .auth-card h2{margin:0 0 4px}
+  .auth-card p{margin:0 0 18px;color:var(--muted);font-size:13px}
+  .auth-err{color:var(--danger);font-size:13px;margin-top:10px;min-height:16px}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input,select{width:100%;background:#0b1220;border:1px solid var(--line);color:var(--txt);
+    padding:9px 10px;border-radius:8px;font-size:14px}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;
+    justify-content:center;padding:30px 16px;overflow:auto;z-index:50}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;
+    width:100%;max-width:520px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--card)}
+  .scroll{overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .hidden{display:none}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .preview-box{margin-top:10px;padding:10px 12px;background:#0b1220;border-radius:8px;font-size:13px}
+  .ticker-badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:14px;font-weight:700;
+    background:#1a2f45;border:1px solid var(--accent);color:var(--accent);letter-spacing:.08em}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:var(--card2);border:1px solid var(--line)}
+  .tag-buy{color:var(--accent2);font-weight:600}
+  .tag-sell{color:var(--danger);font-weight:600}
+  .tag-cashdiv{color:var(--warn);font-weight:600}
+  .tag-stockdiv{color:var(--accent);font-weight:600}
+  .portfolio-bar{background:linear-gradient(135deg,#1a2a3f,#151f2e);border:1px solid var(--line);
+    border-radius:14px;padding:18px;margin-bottom:18px;display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px}
+  .pb-item .cap{font-size:12px;color:var(--muted)}
+  .pb-item .val{font-size:20px;font-weight:700;margin-top:4px}
+</style>
+</head>
+<body class="locked">
+
+<div id="authOverlay">
+  <div class="auth-card">
+    <h2>🔒 Đăng nhập</h2>
+    <p>Quản lý đầu tư chứng khoán</p>
+    <label>Tài khoản</label>
+    <input id="authUser" autocomplete="username" placeholder="Tài khoản">
+    <label>Mật khẩu</label>
+    <input id="authPass" type="password" autocomplete="current-password" placeholder="Mật khẩu">
+    <div class="auth-err" id="authErr"></div>
+    <button class="btn primary" id="btnLogin" style="width:100%;margin-top:14px">Đăng nhập</button>
+  </div>
+</div>
+
+<header>
+  <h1>📈 Quản lý đầu tư chứng khoán</h1>
+  <button class="btn" id="btnBack" style="display:none">← Danh sách</button>
+  <span class="pill hidden" id="fileLabel" style="cursor:default"></span>
+  <button class="btn small ghost hidden" id="btnUnlink" title="Bỏ liên kết file">✕ file</button>
+  <button class="btn green" id="btnExport">⤓ Lưu JSON</button>
+  <button class="btn" id="btnImportTrigger">⤒ Tải JSON</button>
+  <button class="btn small ghost" id="btnLogout" title="Đăng xuất">⎋ Thoát</button>
+  <input type="file" id="importFile" accept="application/json" style="display:none">
+</header>
+
+<main>
+  <div id="listView">
+    <div class="portfolio-bar hidden" id="portfolioBar"></div>
+    <div class="flex" style="justify-content:space-between;margin-bottom:14px">
+      <div class="muted" id="listSummary"></div>
+      <button class="btn primary" id="btnNew">+ Thêm mã CK</button>
+    </div>
+    <div class="grid" id="stockGrid"></div>
+  </div>
+  <div id="detailView" style="display:none"></div>
+</main>
+
+<!-- Stock modal (add / edit name) -->
+<div class="modal-bg" id="stockModal">
+  <div class="modal" style="max-width:400px">
+    <h2 id="stockModalTitle">Thêm mã chứng khoán</h2>
+    <label>Mã chứng khoán</label>
+    <input id="f_ticker" placeholder="VD: VNM, HPG, VIC..." autocomplete="off">
+    <label>Tên công ty (tùy chọn)</label>
+    <input id="f_name" placeholder="VD: Vinamilk">
+    <div class="flex" style="justify-content:flex-end;margin-top:20px">
+      <button class="btn ghost" id="btnCancelStock">Hủy</button>
+      <button class="btn primary" id="btnSaveStock">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transaction modal (buy / sell) -->
+<div class="modal-bg" id="txnModal">
+  <div class="modal" style="max-width:460px">
+    <h2 id="txnModalTitle">Giao dịch</h2>
+    <label>Loại giao dịch</label>
+    <select id="t_type">
+      <option value="buy">Mua vào</option>
+      <option value="sell">Bán ra</option>
+    </select>
+    <div class="form-grid">
+      <div>
+        <label>Số lượng (CP)</label>
+        <input id="t_qty" inputmode="numeric" placeholder="VD: 100">
+      </div>
+      <div>
+        <label>Giá (đ/CP)</label>
+        <input id="t_price" inputmode="numeric" placeholder="VD: 50000">
+        <div class="hint" id="t_price_hint"></div>
+      </div>
+      <div>
+        <label>Ngày giao dịch</label>
+        <input id="t_date" type="date">
+      </div>
+      <div>
+        <div id="fee_buy">
+          <label>Phí mua (đ)</label>
+          <input id="t_fee" inputmode="numeric" placeholder="0" value="0">
+        </div>
+        <div id="fee_sell" style="display:none">
+          <label>Phí môi giới (%)</label>
+          <input id="t_broker_pct" inputmode="decimal" value="0.25" step="0.01">
+          <div class="hint" id="t_sell_fee_hint"></div>
+        </div>
+      </div>
+    </div>
+    <div class="preview-box" id="t_preview" style="display:none"></div>
+    <div class="flex" style="justify-content:flex-end;margin-top:20px">
+      <button class="btn ghost" id="btnCancelTxn">Hủy</button>
+      <button class="btn primary" id="btnSaveTxn">Lưu giao dịch</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cash dividend modal -->
+<div class="modal-bg" id="cashDivModal">
+  <div class="modal" style="max-width:460px">
+    <h2>💵 Cổ tức tiền mặt</h2>
+    <div class="form-grid">
+      <div>
+        <label>Tiền cổ tức (đ/CP, chưa thuế)</label>
+        <input id="cd_amount" inputmode="numeric" placeholder="VD: 1000">
+      </div>
+      <div>
+        <label>Thuế suất TNCN (%)</label>
+        <input id="cd_tax" inputmode="decimal" value="5" placeholder="5">
+        <div class="hint">Thường 5% theo quy định</div>
+      </div>
+      <div style="grid-column:1/-1">
+        <label>Ngày thực hiện quyền</label>
+        <input id="cd_date" type="date">
+      </div>
+    </div>
+    <div class="preview-box" id="cd_preview">Nhập thông tin để xem trước tác động.</div>
+    <div class="flex" style="justify-content:flex-end;margin-top:20px">
+      <button class="btn ghost" id="btnCancelCashDiv">Hủy</button>
+      <button class="btn primary" id="btnSaveCashDiv">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock dividend modal -->
+<div class="modal-bg" id="stockDivModal">
+  <div class="modal" style="max-width:460px">
+    <h2>📄 Cổ tức cổ phiếu / Thưởng CP</h2>
+    <div class="form-grid">
+      <div>
+        <label>Tỷ lệ (%)</label>
+        <input id="sd_ratio" inputmode="decimal" placeholder="VD: 10">
+        <div class="hint">10% = cứ 100 CP nhận thêm 10 CP</div>
+      </div>
+      <div>
+        <label>Ngày thực hiện quyền</label>
+        <input id="sd_date" type="date">
+      </div>
+    </div>
+    <div class="preview-box" id="sd_preview">Nhập tỷ lệ để xem trước tác động.</div>
+    <div class="flex" style="justify-content:flex-end;margin-top:20px">
+      <button class="btn ghost" id="btnCancelStockDiv">Hủy</button>
+      <button class="btn primary" id="btnSaveStockDiv">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Current price modal -->
+<div class="modal-bg" id="priceModal">
+  <div class="modal" style="max-width:380px">
+    <h2 id="priceModalTitle">Cập nhật giá hiện tại</h2>
+    <label>Giá hiện tại (đ/CP)</label>
+    <input id="pm_price" inputmode="numeric" placeholder="VD: 55000">
+    <div class="hint" id="pm_price_hint"></div>
+    <label>Ngày</label>
+    <input id="pm_date" type="date">
+    <div class="preview-box" id="pm_preview" style="margin-top:12px;display:none"></div>
+    <div class="flex" style="justify-content:flex-end;margin-top:20px">
+      <button class="btn ghost" id="btnCancelPrice">Hủy</button>
+      <button class="btn primary" id="btnSavePrice">Cập nhật</button>
+    </div>
+  </div>
+</div>
+
+<!-- Info modal (history etc.) -->
+<div class="modal-bg" id="infoModal">
+  <div class="modal" id="infoModalInner" style="max-width:800px"></div>
+</div>
+
+<script>
+/* ===== State & Storage ===== */
+const LS_KEY = 'cs_portfolio_v1';
+let data = { stocks: [] };
+let currentStockId = null;
+
+function uid(){ return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(data)); }
+function load(){
+  try{ const s=localStorage.getItem(LS_KEY); if(s) data=JSON.parse(s); }catch(e){}
+  if(!data.stocks) data.stocks=[];
+}
+function num(v){ const n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; }
+function ymd(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+function fmtDate(s){ if(!s) return '-'; const[y,m,d]=s.split('-'); return d+'/'+m+'/'+y; }
+function money(n){ return Math.round(n).toLocaleString('vi-VN')+' đ'; }
+function pct(v){ return (v>=0?'+':'')+v.toFixed(2)+'%'; }
+function todayYmd(){ return ymd(new Date()); }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ===== Core computation =====
+   Processes all events (buy/sell/dividends) in chronological order.
+   Returns: qty, avgPrice, totalCost (cost basis), realizedPnL, totalCashDiv, totalStockDiv, totalFees,
+            unrealizedPnL, unrealizedPct, marketValue, currentPrice
+*/
+function computeStock(stock){
+  const events=[];
+  (stock.transactions||[]).forEach(t=>events.push({...t,_et:t.type}));
+  (stock.dividends||[]).forEach(d=>events.push({...d,_et:'div_'+d.type}));
+  events.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+
+  let qty=0,totalCost=0,realizedPnL=0,totalCashDiv=0,totalStockDiv=0,totalFees=0;
+
+  for(const e of events){
+    if(e._et==='buy'){
+      totalCost+=e.qty*e.price+(e.fee||0);
+      qty+=e.qty;
+      totalFees+=e.fee||0;
+    } else if(e._et==='sell'){
+      const avg=qty>0?totalCost/qty:0;
+      realizedPnL+=e.qty*(e.price-avg)-(e.fee||0);
+      totalCost-=e.qty*avg;
+      qty-=e.qty;
+      totalFees+=e.fee||0;
+      if(qty<=0){ qty=0; totalCost=0; }
+    } else if(e._et==='div_cash'){
+      // Cash dividend (after tax) reduces cost basis, lowering avg price
+      const net=e.amountPerShare*(1-(e.taxRate!==undefined?e.taxRate:5)/100);
+      const total=net*qty;
+      totalCashDiv+=total;
+      totalCost=Math.max(0,totalCost-total);
+    } else if(e._et==='div_stock'){
+      // Bonus shares: cost basis unchanged, avg price decreases
+      const bonus=Math.floor(qty*(e.ratio/100));
+      totalStockDiv+=bonus;
+      qty+=bonus;
+    }
+  }
+
+  const avgPrice=qty>0?totalCost/qty:0;
+  const cp=stock.currentPrice?num(stock.currentPrice):null;
+  const unrealizedPnL=cp!==null?(cp-avgPrice)*qty:null;
+  const unrealizedPct=(cp!==null&&avgPrice>0)?(cp-avgPrice)/avgPrice*100:null;
+  const marketValue=cp!==null?cp*qty:null;
+
+  return{qty,avgPrice,totalCost,realizedPnL,totalCashDiv,totalStockDiv,
+         totalFees,unrealizedPnL,unrealizedPct,marketValue,currentPrice:cp};
+}
+
+/* ===== List view ===== */
+function renderList(){
+  document.getElementById('listView').style.display='';
+  document.getElementById('detailView').style.display='none';
+  document.getElementById('btnBack').style.display='none';
+
+  const bar=document.getElementById('portfolioBar');
+  if(!data.stocks.length){ bar.classList.add('hidden'); }
+  else{
+    let totalCostAll=0,totalMarket=0,totalCostWithPrice=0,totalReal=0,hasPrice=0;
+    data.stocks.forEach(s=>{
+      const c=computeStock(s);
+      totalCostAll+=c.totalCost;
+      if(c.marketValue!==null){ totalMarket+=c.marketValue; totalCostWithPrice+=c.totalCost; hasPrice++; }
+      totalReal+=c.realizedPnL;
+    });
+    const unreal=hasPrice>0?totalMarket-totalCostWithPrice:null;
+    const upClass=unreal===null?'muted':unreal>=0?'pos':'neg';
+    const rlClass=totalReal>=0?'pos':'neg';
+    bar.classList.remove('hidden');
+    bar.innerHTML=`
+      <div class="pb-item"><div class="cap">Vốn đầu tư hiện tại</div><div class="val">${money(totalCostAll)}</div></div>
+      <div class="pb-item"><div class="cap">Giá trị thị trường${hasPrice<data.stocks.length?' ('+hasPrice+'/'+data.stocks.length+' mã)':''}</div>
+        <div class="val">${unreal!==null?money(totalMarket):'—'}</div></div>
+      <div class="pb-item"><div class="cap">Lãi/Lỗ chưa thực hiện</div>
+        <div class="val ${upClass}">${unreal!==null?money(unreal)+(totalCostWithPrice>0?' ('+pct(unreal/totalCostWithPrice*100)+')':''):'—'}</div></div>
+      <div class="pb-item"><div class="cap">Lãi/Lỗ đã thực hiện</div>
+        <div class="val ${rlClass}">${money(totalReal)}</div></div>
+    `;
+  }
+
+  const grid=document.getElementById('stockGrid');
+  grid.innerHTML='';
+  document.getElementById('listSummary').textContent=
+    data.stocks.length?`${data.stocks.length} mã chứng khoán`:'Chưa có mã nào.';
+
+  data.stocks.forEach(stock=>{
+    const c=computeStock(stock);
+    const pnlClass=c.unrealizedPnL!==null?(c.unrealizedPnL>=0?'pos':'neg'):'muted';
+    const card=document.createElement('div');
+    card.className='card'; card.style.cursor='pointer';
+    card.innerHTML=`
+      <div class="flex" style="justify-content:space-between;margin-bottom:12px">
+        <span class="ticker-badge">${esc(stock.ticker)}</span>
+        <span class="muted" style="font-size:12px">${esc(stock.name||'')}</span>
+      </div>
+      <div class="row"><span class="k">Giá TB</span><span class="v">${c.qty>0?money(c.avgPrice):'—'}</span></div>
+      <div class="row"><span class="k">Số lượng</span><span class="v">${c.qty.toLocaleString('vi-VN')} CP</span></div>
+      <div class="row"><span class="k">Vốn đầu tư</span><span class="v">${money(c.totalCost)}</span></div>
+      <div class="row"><span class="k">Giá hiện tại</span><span class="v ${c.currentPrice?'warnc':'muted'}">${c.currentPrice?money(c.currentPrice):'—'}</span></div>
+      <div class="row"><span class="k">Lãi/Lỗ TT</span><span class="v ${pnlClass}">${
+        c.unrealizedPnL!==null?money(c.unrealizedPnL)+' ('+pct(c.unrealizedPct)+')':'—'
+      }</span></div>
+      <div class="flex" style="justify-content:space-between;margin-top:14px">
+        <button class="btn small primary" data-open="${stock.id}">Chi tiết →</button>
+        <button class="btn small danger" data-del="${stock.id}">Xóa</button>
+      </div>
+    `;
+    card.onclick=()=>openDetail(stock.id);
+    card.querySelector('[data-open]').onclick=e=>{e.stopPropagation();openDetail(stock.id);};
+    card.querySelector('[data-del]').onclick=e=>{
+      e.stopPropagation();
+      if(confirm(`Xóa mã ${stock.ticker}? Toàn bộ dữ liệu sẽ bị xóa.`)){
+        data.stocks=data.stocks.filter(s=>s.id!==stock.id); save(); renderList();
+      }
+    };
+    grid.appendChild(card);
+  });
+}
+
+/* ===== Detail view ===== */
+function openDetail(id){
+  currentStockId=id;
+  document.getElementById('listView').style.display='none';
+  document.getElementById('detailView').style.display='';
+  document.getElementById('btnBack').style.display='';
+  renderDetail();
+}
+
+function renderDetail(){
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  if(!stock){ renderList(); return; }
+  const c=computeStock(stock);
+  const dv=document.getElementById('detailView');
+  const txnCount=(stock.transactions||[]).length;
+  const divCount=(stock.dividends||[]).length;
+
+  const upClass=c.unrealizedPnL!==null?(c.unrealizedPnL>=0?'green':'red'):'';
+  const rlClass=c.realizedPnL!==0?(c.realizedPnL>=0?'green':'red'):'';
+  const upTxt=c.unrealizedPnL!==null?(c.unrealizedPnL>=0?'pos':'neg'):'muted';
+  const rlTxt=c.realizedPnL>=0?'pos':'neg';
+  const totalReturn=(c.unrealizedPnL||0)+c.realizedPnL+c.totalCashDiv;
+  const trTxt=totalReturn>=0?'pos':'neg';
+
+  const allTxns=[...(stock.transactions||[])].sort((a,b)=>b.date<a.date?1:-1);
+  const allDivs=[...(stock.dividends||[])].sort((a,b)=>b.date<a.date?1:-1);
+
+  dv.innerHTML=`
+    <div class="detail-head">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span class="ticker-badge" style="font-size:20px;padding:6px 16px">${esc(stock.ticker)}</span>
+        ${stock.name?`<span style="font-size:15px;color:var(--muted)">${esc(stock.name)}</span>`:''}
+      </div>
+      <div class="actionbar">
+        <button class="btn small green" id="btnBuy">+ Mua vào</button>
+        <button class="btn small danger" id="btnSell">− Bán ra</button>
+        <button class="btn small" style="color:var(--warn)" id="btnCashDiv">💵 Cổ tức tiền</button>
+        <button class="btn small" style="color:var(--accent)" id="btnStockDiv">📄 Cổ tức CP</button>
+        <button class="btn small primary" id="btnUpdatePrice">📊 Cập nhật giá</button>
+        <button class="btn small" id="btnEditStock">✎ Sửa</button>
+      </div>
+    </div>
+
+    <div class="hero-grid">
+      <div class="hero blue">
+        <div class="cap">Giá trung bình</div>
+        <div class="num">${c.qty>0?money(c.avgPrice):'—'}</div>
+        <div class="sub">${c.qty.toLocaleString('vi-VN')} CP · vốn ${money(c.totalCost)}</div>
+      </div>
+      <div class="hero amber">
+        <div class="cap">Giá hiện tại</div>
+        <div class="num warnc">${c.currentPrice?money(c.currentPrice):'Chưa cập nhật'}</div>
+        <div class="sub">${stock.currentPriceDate?'Ngày: '+fmtDate(stock.currentPriceDate):''}</div>
+        <div class="sub">${c.marketValue!==null?'Giá trị TT: '+money(c.marketValue):''}</div>
+      </div>
+      <div class="hero ${upClass}">
+        <div class="cap">Lãi/Lỗ chưa thực hiện</div>
+        <div class="num ${upTxt}">${c.unrealizedPnL!==null?money(c.unrealizedPnL):'—'}</div>
+        <div class="sub ${upTxt}">${c.unrealizedPct!==null?pct(c.unrealizedPct):''}</div>
+      </div>
+      <div class="hero ${rlClass}">
+        <div class="cap">Lãi/Lỗ đã thực hiện</div>
+        <div class="num ${rlTxt}">${c.realizedPnL!==0?money(c.realizedPnL):'—'}</div>
+        <div class="sub">Từ các lệnh bán</div>
+      </div>
+    </div>
+
+    <div class="mini-grid">
+      <div class="mini"><div class="cap">Cổ tức tiền mặt (sau thuế)</div><div class="mv pos">${c.totalCashDiv>0?money(c.totalCashDiv):'—'}</div></div>
+      <div class="mini"><div class="cap">CP thưởng đã nhận</div><div class="mv pos">${c.totalStockDiv>0?c.totalStockDiv.toLocaleString('vi-VN')+' CP':'—'}</div></div>
+      <div class="mini"><div class="cap">Tổng lợi nhuận</div><div class="mv ${trTxt}">${money(totalReturn)}</div></div>
+      <div class="mini"><div class="cap">Tổng phí giao dịch</div><div class="mv neg">${c.totalFees>0?money(c.totalFees):'—'}</div></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card" style="padding:0">
+        <div class="flex" style="justify-content:space-between;padding:14px 16px 8px">
+          <h3 style="margin:0">Lịch sử giao dịch</h3>
+          <button class="btn small ghost" id="btnAllTxn">Xem tất cả (${txnCount}) →</button>
+        </div>
+        <div class="scroll" style="max-height:280px">
+          <table>
+            <thead><tr><th>Ngày</th><th>Loại</th><th>SL</th><th>Giá</th><th>Giá trị</th></tr></thead>
+            <tbody id="txnBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="flex" style="justify-content:space-between;padding:14px 16px 8px">
+          <h3 style="margin:0">Cổ tức</h3>
+          <button class="btn small ghost" id="btnAllDiv">Xem tất cả (${divCount}) →</button>
+        </div>
+        <div class="scroll" style="max-height:280px">
+          <table>
+            <thead><tr><th>Ngày</th><th>Loại</th><th>Chi tiết</th><th>Giá TB sau</th></tr></thead>
+            <tbody id="divBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Transaction table
+  const txnBody=document.getElementById('txnBody');
+  if(!allTxns.length){
+    txnBody.innerHTML=`<tr><td colspan="5" class="muted" style="text-align:center;padding:14px">Chưa có giao dịch</td></tr>`;
+  } else {
+    txnBody.innerHTML=allTxns.slice(0,8).map(t=>`
+      <tr>
+        <td>${fmtDate(t.date)}</td>
+        <td class="tag-${t.type}">${t.type==='buy'?'Mua':'Bán'}</td>
+        <td>${t.qty.toLocaleString('vi-VN')}</td>
+        <td>${money(t.price)}</td>
+        <td>${money(t.qty*t.price)}</td>
+      </tr>`).join('');
+  }
+
+  // Dividend table — show avg price after each dividend
+  const divBody=document.getElementById('divBody');
+  if(!allDivs.length){
+    divBody.innerHTML=`<tr><td colspan="4" class="muted" style="text-align:center;padding:14px">Chưa có cổ tức</td></tr>`;
+  } else {
+    divBody.innerHTML=allDivs.slice(0,8).map(d=>{
+      const label=d.type==='cash'
+        ?`<span class="tag-cashdiv">Tiền mặt</span>`
+        :`<span class="tag-stockdiv">Cổ phiếu</span>`;
+      const detail=d.type==='cash'?`${money(d.amountPerShare)}/CP`:`${d.ratio}%`;
+      const snap=computeStock({
+        ...stock,
+        transactions:(stock.transactions||[]).filter(x=>x.date<=d.date),
+        dividends:(stock.dividends||[]).filter(x=>x.date<=d.date)
+      });
+      return `<tr>
+        <td>${fmtDate(d.date)}</td>
+        <td>${label}</td>
+        <td>${detail}</td>
+        <td>${snap.qty>0?money(snap.avgPrice):'—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('btnBuy').onclick=()=>openTxnModal('buy');
+  document.getElementById('btnSell').onclick=()=>openTxnModal('sell');
+  document.getElementById('btnCashDiv').onclick=openCashDivModal;
+  document.getElementById('btnStockDiv').onclick=openStockDivModal;
+  document.getElementById('btnUpdatePrice').onclick=openPriceModal;
+  document.getElementById('btnEditStock').onclick=()=>openStockModal(stock);
+  document.getElementById('btnAllTxn').onclick=openTxnHistory;
+  document.getElementById('btnAllDiv').onclick=openDivHistory;
+}
+
+/* ===== Modals ===== */
+
+function openStockModal(stock){
+  document.getElementById('stockModalTitle').textContent=stock?'Sửa mã chứng khoán':'Thêm mã chứng khoán';
+  document.getElementById('f_ticker').value=stock?.ticker||'';
+  document.getElementById('f_ticker').disabled=!!stock;
+  document.getElementById('f_name').value=stock?.name||'';
+  document.getElementById('stockModal').dataset.editing=stock?.id||'';
+  document.getElementById('stockModal').classList.add('show');
+}
+function closeStockModal(){ document.getElementById('stockModal').classList.remove('show'); }
+function saveStock(){
+  const ticker=document.getElementById('f_ticker').value.trim().toUpperCase();
+  const name=document.getElementById('f_name').value.trim();
+  const editId=document.getElementById('stockModal').dataset.editing;
+  if(!ticker){ alert('Vui lòng nhập mã chứng khoán.'); return; }
+  if(editId){
+    const s=data.stocks.find(s=>s.id===editId); if(s){ s.name=name; }
+  } else {
+    if(data.stocks.find(s=>s.ticker===ticker)){ alert(`Mã ${ticker} đã tồn tại.`); return; }
+    data.stocks.push({id:uid(),ticker,name,transactions:[],dividends:[],currentPrice:null,currentPriceDate:null});
+  }
+  save(); closeStockModal();
+  if(editId&&currentStockId===editId) renderDetail(); else renderList();
+}
+
+function toggleTxnFeeSection(type){
+  document.getElementById('fee_buy').style.display=type==='buy'?'':' none';
+  document.getElementById('fee_sell').style.display=type==='sell'?'':'none';
+}
+function openTxnModal(type){
+  document.getElementById('txnModalTitle').textContent=type==='buy'?'Mua vào':'Bán ra';
+  document.getElementById('t_type').value=type||'buy';
+  document.getElementById('t_qty').value='';
+  document.getElementById('t_price').value='';
+  document.getElementById('t_fee').value='0';
+  document.getElementById('t_broker_pct').value='0.25';
+  document.getElementById('t_date').value=todayYmd();
+  document.getElementById('t_preview').style.display='none';
+  document.getElementById('t_price_hint').textContent='';
+  document.getElementById('t_sell_fee_hint').textContent='';
+  toggleTxnFeeSection(type||'buy');
+  document.getElementById('txnModal').classList.add('show');
+}
+function closeTxnModal(){ document.getElementById('txnModal').classList.remove('show'); }
+
+function calcSellFees(qty, price, brokerPct){
+  const sellValue=qty*price;
+  const taxFee=sellValue*0.001;           // thuế TNCN 0.1% bắt buộc
+  const brokerFee=sellValue*brokerPct/100;
+  return{taxFee, brokerFee, total:taxFee+brokerFee};
+}
+function updateTxnPreview(){
+  const type=document.getElementById('t_type').value;
+  const qty=num(document.getElementById('t_qty').value);
+  const price=num(document.getElementById('t_price').value);
+  document.getElementById('t_price_hint').textContent=price?money(price):'';
+  const preview=document.getElementById('t_preview');
+  if(!qty||!price){ preview.style.display='none'; return; }
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  if(!stock){ return; }
+  const c=computeStock(stock);
+  preview.style.display='';
+  if(type==='buy'){
+    const fee=num(document.getElementById('t_fee').value);
+    const newQty=c.qty+qty;
+    const newCost=c.totalCost+qty*price+(fee||0);
+    const newAvg=newCost/newQty;
+    preview.innerHTML=`
+      <div class="row"><span class="k">Giá TB hiện tại</span><span class="v">${c.qty>0?money(c.avgPrice):'—'}</span></div>
+      <div class="row"><span class="k">Giá TB sau khi mua</span><span class="v warnc">${money(newAvg)}</span></div>
+      <div class="row"><span class="k">Tổng SL sau</span><span class="v">${newQty.toLocaleString('vi-VN')} CP</span></div>
+      <div class="row"><span class="k">Tổng giá trị lệnh</span><span class="v">${money(qty*price+(fee||0))}</span></div>
+    `;
+  } else {
+    if(c.qty<=0){ preview.innerHTML=`<div class="neg" style="padding:4px 0">Không có CP để bán.</div>`; return; }
+    const brokerPct=num(document.getElementById('t_broker_pct').value)||0;
+    const fees=calcSellFees(qty,price,brokerPct);
+    document.getElementById('t_sell_fee_hint').textContent=
+      `Thuế TNCN 0.1%: ${money(fees.taxFee)} · Phí MT: ${money(fees.brokerFee)}`;
+    const pnl=qty*(price-c.avgPrice)-fees.total;
+    const grossPnl=qty*(price-c.avgPrice);
+    const pnlPct=c.avgPrice>0?(price-c.avgPrice)/c.avgPrice*100:0;
+    preview.innerHTML=`
+      <div class="row"><span class="k">Giá TB</span><span class="v">${money(c.avgPrice)}</span></div>
+      <div class="row"><span class="k">Giá trị bán</span><span class="v">${money(qty*price)}</span></div>
+      <div class="row"><span class="k">Thuế TNCN (0.1%)</span><span class="v neg">${money(fees.taxFee)}</span></div>
+      <div class="row"><span class="k">Phí môi giới (${brokerPct}%)</span><span class="v neg">${money(fees.brokerFee)}</span></div>
+      <div class="row"><span class="k">Lãi/Lỗ gộp</span><span class="v ${grossPnl>=0?'pos':'neg'}">${money(grossPnl)} (${pct(pnlPct)})</span></div>
+      <div class="row"><span class="k">Lãi/Lỗ sau phí &amp; thuế</span><span class="v ${pnl>=0?'pos':'neg'}">${money(pnl)}</span></div>
+      <div class="row"><span class="k">Còn lại sau bán</span><span class="v">${Math.max(0,c.qty-qty).toLocaleString('vi-VN')} CP</span></div>
+    `;
+  }
+}
+function saveTxn(){
+  const type=document.getElementById('t_type').value;
+  const qty=num(document.getElementById('t_qty').value);
+  const price=num(document.getElementById('t_price').value);
+  const date=document.getElementById('t_date').value;
+  if(!date||qty<=0||price<=0){ alert('Vui lòng nhập đầy đủ thông tin.'); return; }
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  let txn;
+  if(type==='sell'){
+    const c=computeStock(stock);
+    if(qty>c.qty){ alert(`Chỉ có ${c.qty} CP để bán.`); return; }
+    const brokerPct=num(document.getElementById('t_broker_pct').value)||0;
+    const fees=calcSellFees(qty,price,brokerPct);
+    txn={id:uid(),type,qty,price,date,brokerFeePct:brokerPct,brokerFee:fees.brokerFee,taxFee:fees.taxFee,fee:fees.total};
+  } else {
+    const fee=num(document.getElementById('t_fee').value);
+    txn={id:uid(),type,qty,price,date,fee:fee||0};
+  }
+  stock.transactions=stock.transactions||[];
+  stock.transactions.push(txn);
+  save(); closeTxnModal(); renderDetail();
+}
+
+function openCashDivModal(){
+  document.getElementById('cd_amount').value='';
+  document.getElementById('cd_tax').value='5';
+  document.getElementById('cd_date').value=todayYmd();
+  document.getElementById('cd_preview').textContent='Nhập thông tin để xem trước tác động.';
+  document.getElementById('cashDivModal').classList.add('show');
+}
+function closeCashDivModal(){ document.getElementById('cashDivModal').classList.remove('show'); }
+function updateCashDivPreview(){
+  const amount=num(document.getElementById('cd_amount').value);
+  const tax=num(document.getElementById('cd_tax').value)||5;
+  const preview=document.getElementById('cd_preview');
+  if(!amount){ preview.textContent='Nhập số tiền cổ tức để xem trước.'; return; }
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  if(!stock){ return; }
+  const c=computeStock(stock);
+  const net=amount*(1-tax/100);
+  const total=net*c.qty;
+  const newAvg=Math.max(0,c.avgPrice-net);
+  preview.innerHTML=`
+    <div class="row"><span class="k">Nhận sau thuế ${tax}%</span><span class="v pos">${money(net)}/CP</span></div>
+    <div class="row"><span class="k">Tổng nhận (${c.qty.toLocaleString()} CP)</span><span class="v pos">${money(total)}</span></div>
+    <div class="row"><span class="k">Giá TB trước</span><span class="v">${money(c.avgPrice)}</span></div>
+    <div class="row"><span class="k">Giá TB sau cổ tức</span><span class="v warnc">${money(newAvg)}</span></div>
+  `;
+}
+function saveCashDiv(){
+  const amountPerShare=num(document.getElementById('cd_amount').value);
+  const taxRate=num(document.getElementById('cd_tax').value)||5;
+  const date=document.getElementById('cd_date').value;
+  if(!date||amountPerShare<=0){ alert('Vui lòng nhập đủ thông tin.'); return; }
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  stock.dividends=stock.dividends||[];
+  stock.dividends.push({id:uid(),type:'cash',amountPerShare,taxRate,date});
+  save(); closeCashDivModal(); renderDetail();
+}
+
+function openStockDivModal(){
+  document.getElementById('sd_ratio').value='';
+  document.getElementById('sd_date').value=todayYmd();
+  document.getElementById('sd_preview').textContent='Nhập tỷ lệ để xem trước tác động.';
+  document.getElementById('stockDivModal').classList.add('show');
+}
+function closeStockDivModal(){ document.getElementById('stockDivModal').classList.remove('show'); }
+function updateStockDivPreview(){
+  const ratio=num(document.getElementById('sd_ratio').value);
+  const preview=document.getElementById('sd_preview');
+  if(!ratio){ preview.textContent='Nhập tỷ lệ (%) để xem trước.'; return; }
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  if(!stock){ return; }
+  const c=computeStock(stock);
+  const bonus=Math.floor(c.qty*ratio/100);
+  const newQty=c.qty+bonus;
+  const newAvg=newQty>0?c.totalCost/newQty:0;
+  preview.innerHTML=`
+    <div class="row"><span class="k">CP hiện tại</span><span class="v">${c.qty.toLocaleString('vi-VN')}</span></div>
+    <div class="row"><span class="k">CP thưởng nhận thêm</span><span class="v pos">+${bonus.toLocaleString('vi-VN')}</span></div>
+    <div class="row"><span class="k">Tổng CP sau</span><span class="v">${newQty.toLocaleString('vi-VN')}</span></div>
+    <div class="row"><span class="k">Giá TB trước</span><span class="v">${money(c.avgPrice)}</span></div>
+    <div class="row"><span class="k">Giá TB sau</span><span class="v warnc">${money(newAvg)}</span></div>
+  `;
+}
+function saveStockDiv(){
+  const ratio=num(document.getElementById('sd_ratio').value);
+  const date=document.getElementById('sd_date').value;
+  if(!date||ratio<=0){ alert('Vui lòng nhập đủ thông tin.'); return; }
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  stock.dividends=stock.dividends||[];
+  stock.dividends.push({id:uid(),type:'stock',ratio,date});
+  save(); closeStockDivModal(); renderDetail();
+}
+
+function openPriceModal(){
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  document.getElementById('priceModalTitle').textContent=`Cập nhật giá ${stock.ticker}`;
+  document.getElementById('pm_price').value=stock.currentPrice||'';
+  document.getElementById('pm_date').value=stock.currentPriceDate||todayYmd();
+  document.getElementById('pm_price_hint').textContent=stock.currentPrice?money(stock.currentPrice):'';
+  document.getElementById('pm_preview').style.display='none';
+  document.getElementById('priceModal').classList.add('show');
+  updatePricePreview();
+}
+function closePriceModal(){ document.getElementById('priceModal').classList.remove('show'); }
+function updatePricePreview(){
+  const price=num(document.getElementById('pm_price').value);
+  document.getElementById('pm_price_hint').textContent=price?money(price):'';
+  const preview=document.getElementById('pm_preview');
+  if(!price){ preview.style.display='none'; return; }
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  if(!stock){ return; }
+  const c=computeStock(stock);
+  if(c.qty<=0){ preview.style.display='none'; return; }
+  const unrealized=(price-c.avgPrice)*c.qty;
+  const upct=c.avgPrice>0?(price-c.avgPrice)/c.avgPrice*100:0;
+  const cl=unrealized>=0?'pos':'neg';
+  preview.style.display='';
+  preview.innerHTML=`
+    <div class="row"><span class="k">Giá TB</span><span class="v">${money(c.avgPrice)}</span></div>
+    <div class="row"><span class="k">Số lượng</span><span class="v">${c.qty.toLocaleString('vi-VN')} CP</span></div>
+    <div class="row"><span class="k">Lãi/Lỗ chưa TH</span><span class="v ${cl}">${money(unrealized)} (${pct(upct)})</span></div>
+    <div class="row"><span class="k">Giá trị thị trường</span><span class="v">${money(price*c.qty)}</span></div>
+  `;
+}
+function savePrice(){
+  const price=num(document.getElementById('pm_price').value);
+  const date=document.getElementById('pm_date').value;
+  if(price<=0){ alert('Vui lòng nhập giá hợp lệ.'); return; }
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  stock.currentPrice=price; stock.currentPriceDate=date;
+  save(); closePriceModal(); renderDetail();
+}
+
+// Generic info modal
+function openInfoModal(html,wide){
+  const inner=document.getElementById('infoModalInner');
+  inner.style.maxWidth=wide?'860px':'560px';
+  inner.innerHTML=html;
+  document.getElementById('infoModal').classList.add('show');
+  return inner;
+}
+function closeInfoModal(){ document.getElementById('infoModal').classList.remove('show'); }
+
+function openTxnHistory(){
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  const txns=[...(stock.transactions||[])].sort((a,b)=>a.date<b.date?-1:1);
+  const body=txns.map(t=>{
+    const feeDetail=t.type==='sell'&&t.taxFee
+      ?`${money(t.fee)}<div style="font-size:11px;color:var(--muted)">thuế ${money(t.taxFee)}</div>`
+      :(t.fee?money(t.fee):'—');
+    return`<tr>
+      <td>${fmtDate(t.date)}</td>
+      <td class="tag-${t.type}">${t.type==='buy'?'Mua':'Bán'}</td>
+      <td>${t.qty.toLocaleString('vi-VN')}</td>
+      <td>${money(t.price)}</td>
+      <td>${money(t.qty*t.price)}</td>
+      <td class="neg">${feeDetail}</td>
+      <td><button class="btn small danger" data-deltxn="${t.id}">×</button></td>
+    </tr>`;}).join('');
+  const inner=openInfoModal(`
+    <div class="flex" style="justify-content:space-between">
+      <h2 style="margin:0">📋 Lịch sử giao dịch ${esc(stock.ticker)}</h2>
+      <button class="btn small ghost" id="btnCloseInfo">✕</button>
+    </div>
+    <div class="scroll" style="margin-top:12px;max-height:55vh">
+      <table>
+        <thead><tr><th>Ngày</th><th>Loại</th><th>SL</th><th>Giá</th><th>Giá trị</th><th>Phí</th><th></th></tr></thead>
+        <tbody>${body||'<tr><td colspan="7" class="muted" style="text-align:center;padding:14px">Chưa có</td></tr>'}</tbody>
+      </table>
+    </div>
+    <div class="flex" style="justify-content:flex-end;margin-top:12px;gap:8px">
+      <button class="btn small green" id="btnHistBuy">+ Mua vào</button>
+      <button class="btn small danger" id="btnHistSell">− Bán ra</button>
+    </div>
+  `,true);
+  inner.querySelector('#btnCloseInfo').onclick=closeInfoModal;
+  inner.querySelector('#btnHistBuy').onclick=()=>{closeInfoModal();openTxnModal('buy');};
+  inner.querySelector('#btnHistSell').onclick=()=>{closeInfoModal();openTxnModal('sell');};
+  inner.querySelectorAll('[data-deltxn]').forEach(b=>b.onclick=()=>{
+    const s=data.stocks.find(s=>s.id===currentStockId);
+    s.transactions=s.transactions.filter(t=>t.id!==b.dataset.deltxn);
+    save(); closeInfoModal(); renderDetail();
+  });
+}
+
+function openDivHistory(){
+  const stock=data.stocks.find(s=>s.id===currentStockId);
+  const divs=[...(stock.dividends||[])].sort((a,b)=>a.date<b.date?-1:1);
+  const body=divs.map(d=>{
+    const label=d.type==='cash'
+      ?`<span class="tag-cashdiv">Tiền mặt</span>`
+      :`<span class="tag-stockdiv">Cổ phiếu</span>`;
+    const detail=d.type==='cash'
+      ?`${money(d.amountPerShare)}/CP · thuế ${d.taxRate||5}%`
+      :`Tỷ lệ ${d.ratio}%`;
+    const snap=computeStock({
+      ...stock,
+      transactions:(stock.transactions||[]).filter(x=>x.date<=d.date),
+      dividends:(stock.dividends||[]).filter(x=>x.date<=d.date)
+    });
+    return `<tr>
+      <td>${fmtDate(d.date)}</td>
+      <td>${label}</td>
+      <td>${detail}</td>
+      <td>${snap.qty>0?money(snap.avgPrice):'—'}</td>
+      <td><button class="btn small danger" data-deldiv="${d.id}">×</button></td>
+    </tr>`;
+  }).join('');
+  const inner=openInfoModal(`
+    <div class="flex" style="justify-content:space-between">
+      <h2 style="margin:0">💰 Lịch sử cổ tức ${esc(stock.ticker)}</h2>
+      <button class="btn small ghost" id="btnCloseInfo">✕</button>
+    </div>
+    <div class="scroll" style="margin-top:12px;max-height:55vh">
+      <table>
+        <thead><tr><th>Ngày</th><th>Loại</th><th>Chi tiết</th><th>Giá TB sau</th><th></th></tr></thead>
+        <tbody>${body||'<tr><td colspan="5" class="muted" style="text-align:center;padding:14px">Chưa có</td></tr>'}</tbody>
+      </table>
+    </div>
+    <div class="flex" style="justify-content:flex-end;margin-top:12px;gap:8px">
+      <button class="btn small" style="color:var(--warn)" id="btnHistCashDiv">+ Cổ tức tiền</button>
+      <button class="btn small" style="color:var(--accent)" id="btnHistStockDiv">+ Cổ tức CP</button>
+    </div>
+  `,false);
+  inner.querySelector('#btnCloseInfo').onclick=closeInfoModal;
+  inner.querySelector('#btnHistCashDiv').onclick=()=>{closeInfoModal();openCashDivModal();};
+  inner.querySelector('#btnHistStockDiv').onclick=()=>{closeInfoModal();openStockDivModal();};
+  inner.querySelectorAll('[data-deldiv]').forEach(b=>b.onclick=()=>{
+    const s=data.stocks.find(s=>s.id===currentStockId);
+    s.dividends=s.dividends.filter(d=>d.id!==b.dataset.deldiv);
+    save(); closeInfoModal(); renderDetail();
+  });
+}
+
+/* ===== Import / Export ===== */
+let fileHandle=null;
+const supportsFS='showSaveFilePicker' in window&&'showOpenFilePicker' in window;
+function idb(mode,fn){return new Promise(res=>{const r=indexedDB.open('cs_fs_v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('kv'))r.result.createObjectStore('kv');};r.onsuccess=()=>{const tx=r.result.transaction('kv',mode);const st=tx.objectStore('kv');fn(st,res);};r.onerror=()=>res(null);});}
+const idbGet=k=>idb('readonly',(st,res)=>{const g=st.get(k);g.onsuccess=()=>res(g.result);g.onerror=()=>res(null);});
+const idbSet=(k,v)=>idb('readwrite',(st,res)=>{st.put(v,k);res(true);});
+const idbDel=k=>idb('readwrite',(st,res)=>{st.delete(k);res(true);});
+async function ensurePerm(h,m){const o={mode:m};if((await h.queryPermission(o))==='granted')return true;if((await h.requestPermission(o))==='granted')return true;return false;}
+function updateFileLabel(){const el=document.getElementById('fileLabel'),un=document.getElementById('btnUnlink');if(fileHandle){el.textContent='📄 '+fileHandle.name;el.classList.remove('hidden');un.classList.remove('hidden');}else{el.classList.add('hidden');un.classList.add('hidden');}}
+function applyImported(text){const obj=JSON.parse(text);if(!obj.stocks)throw new Error('Sai định dạng (thiếu "stocks")');data=obj;save();currentStockId=null;renderList();}
+async function exportJSON(){
+  const json=JSON.stringify(data,null,2);
+  if(supportsFS){try{if(!fileHandle){fileHandle=await window.showSaveFilePicker({suggestedName:'chung-khoan.json',types:[{description:'JSON',accept:{'application/json':['.json']}}]});await idbSet('fileHandle',fileHandle);}if(await ensurePerm(fileHandle,'readwrite')){const w=await fileHandle.createWritable();await w.write(json);await w.close();updateFileLabel();return;}}catch(e){if(e.name==='AbortError')return;}}
+  const blob=new Blob([json],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='chung-khoan-'+todayYmd()+'.json';a.click();URL.revokeObjectURL(a.href);
+}
+async function importJSON(){
+  if(supportsFS){try{const[h]=await window.showOpenFilePicker({types:[{description:'JSON',accept:{'application/json':['.json']}}]});fileHandle=h;await idbSet('fileHandle',h);const f=await h.getFile();applyImported(await f.text());updateFileLabel();return;}catch(e){if(e.name==='AbortError')return;alert('Lỗi: '+e.message);return;}}
+  document.getElementById('importFile').click();
+}
+function importFallback(file){const r=new FileReader();r.onload=()=>{try{applyImported(r.result);}catch(e){alert('File không hợp lệ: '+e.message);}};r.readAsText(file);}
+async function unlinkFile(){fileHandle=null;await idbDel('fileHandle');updateFileLabel();}
+async function initFileHandle(){try{const h=await idbGet('fileHandle');if(h){fileHandle=h;updateFileLabel();}}catch(e){}}
+
+/* ===== Wire-up ===== */
+document.getElementById('btnNew').onclick=()=>openStockModal(null);
+document.getElementById('btnBack').onclick=renderList;
+document.getElementById('btnCancelStock').onclick=closeStockModal;
+document.getElementById('btnSaveStock').onclick=saveStock;
+document.getElementById('btnCancelTxn').onclick=closeTxnModal;
+document.getElementById('btnSaveTxn').onclick=saveTxn;
+document.getElementById('btnCancelCashDiv').onclick=closeCashDivModal;
+document.getElementById('btnSaveCashDiv').onclick=saveCashDiv;
+document.getElementById('btnCancelStockDiv').onclick=closeStockDivModal;
+document.getElementById('btnSaveStockDiv').onclick=saveStockDiv;
+document.getElementById('btnCancelPrice').onclick=closePriceModal;
+document.getElementById('btnSavePrice').onclick=savePrice;
+document.getElementById('btnExport').onclick=exportJSON;
+document.getElementById('btnImportTrigger').onclick=importJSON;
+document.getElementById('btnUnlink').onclick=unlinkFile;
+document.getElementById('importFile').onchange=e=>{if(e.target.files[0])importFallback(e.target.files[0]);e.target.value='';};
+[...document.querySelectorAll('.modal-bg')].forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+
+['t_qty','t_price','t_fee','t_broker_pct'].forEach(id=>document.getElementById(id).addEventListener('input',updateTxnPreview));
+document.getElementById('t_type').addEventListener('change',e=>{toggleTxnFeeSection(e.target.value);updateTxnPreview();});
+['cd_amount','cd_tax','cd_date'].forEach(id=>document.getElementById(id).addEventListener('input',updateCashDivPreview));
+document.getElementById('sd_ratio').addEventListener('input',updateStockDivPreview);
+document.getElementById('pm_price').addEventListener('input',updatePricePreview);
+
+/* ===== Auth ===== */
+const AUTH_USER='anhnq',AUTH_PASS='anhnq',AUTH_KEY='cs_auth_v1';
+let appStarted=false;
+function startApp(){if(appStarted)return;appStarted=true;load();renderList();initFileHandle();}
+function unlock(){document.getElementById('authOverlay').classList.add('hidden');document.body.classList.remove('locked');startApp();}
+function tryLogin(){
+  const u=document.getElementById('authUser').value.trim();
+  const p=document.getElementById('authPass').value;
+  if(u===AUTH_USER&&p===AUTH_PASS){sessionStorage.setItem(AUTH_KEY,'1');document.getElementById('authErr').textContent='';unlock();}
+  else{document.getElementById('authErr').textContent='Sai tài khoản hoặc mật khẩu.';}
+}
+function logout(){sessionStorage.removeItem(AUTH_KEY);location.reload();}
+document.getElementById('btnLogin').onclick=tryLogin;
+document.getElementById('btnLogout').onclick=logout;
+document.getElementById('authPass').addEventListener('keydown',e=>{if(e.key==='Enter')tryLogin();});
+document.getElementById('authUser').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('authPass').focus();});
+if(sessionStorage.getItem(AUTH_KEY)==='1'){unlock();}
+else{document.getElementById('authUser').focus();}
+</script>
+</body>
+</html>
