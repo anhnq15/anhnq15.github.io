@@ -795,31 +795,96 @@ function openInfoModal(html,wide){
 }
 function closeInfoModal(){ document.getElementById('infoModal').classList.remove('show'); }
 
+/* Groups filtered transactions by date (newest first) and renders into #txnHistBody */
+function renderTxnHistTable(allTxns, fromDate, toDate, typeFilter){
+  const filtered=allTxns.filter(t=>{
+    if(fromDate&&t.date<fromDate) return false;
+    if(toDate&&t.date>toDate) return false;
+    if(typeFilter&&t.type!==typeFilter) return false;
+    return true;
+  });
+
+  const byDate={};
+  filtered.forEach(t=>{ if(!byDate[t.date]) byDate[t.date]=[]; byDate[t.date].push(t); });
+  const dates=Object.keys(byDate).sort().reverse();
+
+  let html='';
+  for(const date of dates){
+    const dayTxns=byDate[date];
+    const buys=dayTxns.filter(t=>t.type==='buy');
+    const sells=dayTxns.filter(t=>t.type==='sell');
+    const avgBuy=buys.length?buys.reduce((s,t)=>s+t.qty*t.price,0)/buys.reduce((s,t)=>s+t.qty,0):null;
+    const avgSell=sells.length?sells.reduce((s,t)=>s+t.qty*t.price,0)/sells.reduce((s,t)=>s+t.qty,0):null;
+    const parts=[];
+    if(avgBuy!==null) parts.push(`<span class="tag-buy">TB mua: ${money(avgBuy)}</span>`);
+    if(avgSell!==null) parts.push(`<span class="tag-sell">TB bán: ${money(avgSell)}</span>`);
+    html+=`<tr style="background:#0c1a2a">
+      <td colspan="6" style="padding:6px 10px;border-bottom:1px solid var(--line)">
+        <span style="font-weight:600">${fmtDate(date)}</span>
+        ${parts.length?' · '+parts.join(' · '):''}
+      </td>
+    </tr>`;
+    for(const t of dayTxns){
+      const feeDetail=t.type==='sell'&&t.taxFee
+        ?`${money(t.fee)}<div style="font-size:11px;color:var(--muted)">thuế ${money(t.taxFee)}</div>`
+        :(t.fee?money(t.fee):'—');
+      html+=`<tr>
+        <td style="padding-left:18px" class="tag-${t.type}">${t.type==='buy'?'Mua':'Bán'}</td>
+        <td>${t.qty.toLocaleString('vi-VN')}</td>
+        <td>${money(t.price)}</td>
+        <td>${money(t.qty*t.price)}</td>
+        <td class="neg">${feeDetail}</td>
+        <td><button class="btn small danger" data-deltxn="${t.id}">×</button></td>
+      </tr>`;
+    }
+  }
+
+  const tbody=document.getElementById('txnHistBody');
+  if(!tbody) return;
+  tbody.innerHTML=html||'<tr><td colspan="6" class="muted" style="text-align:center;padding:14px">Không có giao dịch</td></tr>';
+  tbody.querySelectorAll('[data-deltxn]').forEach(b=>b.onclick=()=>{
+    const s=data.stocks.find(s=>s.id===currentStockId);
+    s.transactions=s.transactions.filter(t=>t.id!==b.dataset.deltxn);
+    save();
+    renderTxnHistTable(
+      [...(s.transactions||[])],
+      document.getElementById('flt_from')?.value||'',
+      document.getElementById('flt_to')?.value||'',
+      document.getElementById('flt_type')?.value||''
+    );
+    renderDetail();
+  });
+}
+
 function openTxnHistory(){
   const stock=data.stocks.find(s=>s.id===currentStockId);
-  const txns=[...(stock.transactions||[])].sort((a,b)=>a.date<b.date?-1:1);
-  const body=txns.map(t=>{
-    const feeDetail=t.type==='sell'&&t.taxFee
-      ?`${money(t.fee)}<div style="font-size:11px;color:var(--muted)">thuế ${money(t.taxFee)}</div>`
-      :(t.fee?money(t.fee):'—');
-    return`<tr>
-      <td>${fmtDate(t.date)}</td>
-      <td class="tag-${t.type}">${t.type==='buy'?'Mua':'Bán'}</td>
-      <td>${t.qty.toLocaleString('vi-VN')}</td>
-      <td>${money(t.price)}</td>
-      <td>${money(t.qty*t.price)}</td>
-      <td class="neg">${feeDetail}</td>
-      <td><button class="btn small danger" data-deltxn="${t.id}">×</button></td>
-    </tr>`;}).join('');
   const inner=openInfoModal(`
     <div class="flex" style="justify-content:space-between">
       <h2 style="margin:0">📋 Lịch sử giao dịch ${esc(stock.ticker)}</h2>
       <button class="btn small ghost" id="btnCloseInfo">✕</button>
     </div>
-    <div class="scroll" style="margin-top:12px;max-height:55vh">
+    <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:12px;align-items:flex-end">
+      <div style="flex:1;min-width:110px">
+        <div class="hint" style="margin:0 0 3px">Từ ngày</div>
+        <input type="date" id="flt_from" style="padding:6px 8px;font-size:13px">
+      </div>
+      <div style="flex:1;min-width:110px">
+        <div class="hint" style="margin:0 0 3px">Đến ngày</div>
+        <input type="date" id="flt_to" style="padding:6px 8px;font-size:13px">
+      </div>
+      <div style="flex:1;min-width:90px">
+        <div class="hint" style="margin:0 0 3px">Loại</div>
+        <select id="flt_type" style="padding:6px 8px;font-size:13px">
+          <option value="">Tất cả</option>
+          <option value="buy">Mua</option>
+          <option value="sell">Bán</option>
+        </select>
+      </div>
+    </div>
+    <div class="scroll" style="margin-top:10px;max-height:50vh">
       <table>
-        <thead><tr><th>Ngày</th><th>Loại</th><th>SL</th><th>Giá</th><th>Giá trị</th><th>Phí</th><th></th></tr></thead>
-        <tbody>${body||'<tr><td colspan="7" class="muted" style="text-align:center;padding:14px">Chưa có</td></tr>'}</tbody>
+        <thead><tr><th>Loại</th><th>SL</th><th>Giá</th><th>Giá trị</th><th>Phí &amp; thuế</th><th></th></tr></thead>
+        <tbody id="txnHistBody"></tbody>
       </table>
     </div>
     <div class="flex" style="justify-content:flex-end;margin-top:12px;gap:8px">
@@ -827,14 +892,23 @@ function openTxnHistory(){
       <button class="btn small danger" id="btnHistSell">− Bán ra</button>
     </div>
   `,true);
+
+  function applyFilter(){
+    renderTxnHistTable(
+      [...(data.stocks.find(s=>s.id===currentStockId).transactions||[])],
+      document.getElementById('flt_from').value,
+      document.getElementById('flt_to').value,
+      document.getElementById('flt_type').value
+    );
+  }
+
   inner.querySelector('#btnCloseInfo').onclick=closeInfoModal;
   inner.querySelector('#btnHistBuy').onclick=()=>{closeInfoModal();openTxnModal('buy');};
   inner.querySelector('#btnHistSell').onclick=()=>{closeInfoModal();openTxnModal('sell');};
-  inner.querySelectorAll('[data-deltxn]').forEach(b=>b.onclick=()=>{
-    const s=data.stocks.find(s=>s.id===currentStockId);
-    s.transactions=s.transactions.filter(t=>t.id!==b.dataset.deltxn);
-    save(); closeInfoModal(); renderDetail();
-  });
+  inner.querySelector('#flt_from').addEventListener('input',applyFilter);
+  inner.querySelector('#flt_to').addEventListener('input',applyFilter);
+  inner.querySelector('#flt_type').addEventListener('change',applyFilter);
+  applyFilter();
 }
 
 function openDivHistory(){
